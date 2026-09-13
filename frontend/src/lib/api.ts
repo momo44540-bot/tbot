@@ -50,6 +50,18 @@ export type Trade = {
   exit_time: string
 }
 
+export type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+
+export type ReportRow = {
+  period: string
+  trades: number
+  wins: number
+  losses: number
+  win_rate: number
+  pnl_quote: number
+  pnl_pct_avg: number
+}
+
 export type DecisionLogEntry = {
   id: number
   timestamp: string
@@ -88,6 +100,7 @@ export const api = {
     method: 'PUT', body: JSON.stringify(payload),
   }),
   getTrades: () => request<Trade[]>('/api/trades'),
+  getReport: (period: ReportPeriod) => request<ReportRow[]>(`/api/trades/report?period=${period}`),
   getLogs: () => request<DecisionLogEntry[]>('/api/trades/logs'),
   controlStatus: () => request<{ running: boolean; kill_switch: boolean; trading_mode: string }>('/api/control/status'),
   start: () => request<{ ok: boolean }>('/api/control/start', { method: 'POST' }),

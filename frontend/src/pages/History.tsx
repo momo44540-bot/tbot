@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api, type Trade } from '../lib/api'
+import { useCallback, useEffect, useState } from 'react'
+import { api, type ReportPeriod, type ReportRow, type Trade } from '../lib/api'
 
 function fmt(n: number, digits = 2) {
   return n.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits })
@@ -7,17 +7,36 @@ function fmt(n: number, digits = 2) {
 
 const reasonLabel: Record<string, string> = {
   take_profit: 'جني ربح',
+  take_profit_trailing: 'جني ربح مؤمَّن',
   stop_loss: 'وقف خسارة',
   manual: 'إغلاق يدوي',
   kill_switch: 'إيقاف طارئ',
 }
 
+const periods: { key: ReportPeriod; label: string }[] = [
+  { key: 'daily', label: 'يومي' },
+  { key: 'weekly', label: 'أسبوعي' },
+  { key: 'monthly', label: 'شهري' },
+  { key: 'quarterly', label: 'ربعي' },
+  { key: 'yearly', label: 'سنوي' },
+]
+
 export default function History() {
   const [trades, setTrades] = useState<Trade[]>([])
+  const [period, setPeriod] = useState<ReportPeriod>('daily')
+  const [report, setReport] = useState<ReportRow[]>([])
 
   useEffect(() => {
     api.getTrades().then(setTrades).catch(() => {})
   }, [])
+
+  const loadReport = useCallback((p: ReportPeriod) => {
+    api.getReport(p).then(setReport).catch(() => setReport([]))
+  }, [])
+
+  useEffect(() => {
+    loadReport(period)
+  }, [period, loadReport])
 
   const totalPnl = trades.reduce((sum, t) => sum + t.pnl_quote, 0)
   const wins = trades.filter((t) => t.pnl_quote > 0).length
@@ -41,6 +60,54 @@ export default function History() {
             ${fmt(totalPnl)}
           </p>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-white">تقرير الأرباح والخسائر</h2>
+          <div className="flex flex-wrap gap-1">
+            {periods.map((p) => (
+              <button key={p.key} onClick={() => setPeriod(p.key)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                  period === p.key ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {report.length === 0 ? (
+          <p className="text-sm text-slate-500">لا توجد بيانات لهذه الفترة بعد.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-right text-slate-400">
+                  <th className="py-2">الفترة</th>
+                  <th>الصفقات</th>
+                  <th>نسبة الربح</th>
+                  <th>صافي الربح/الخسارة</th>
+                  <th>متوسط العائد</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.map((r) => (
+                  <tr key={r.period} className="border-b border-slate-800/50">
+                    <td className="py-2 font-medium text-white">{r.period}</td>
+                    <td className="text-slate-400">{r.trades} ({r.wins}✓/{r.losses}✗)</td>
+                    <td className="text-slate-400">{fmt(r.win_rate, 1)}%</td>
+                    <td className={r.pnl_quote >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      ${fmt(r.pnl_quote)}
+                    </td>
+                    <td className={r.pnl_pct_avg >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      {fmt(r.pnl_pct_avg)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
