@@ -59,7 +59,16 @@ class OKXClient:
                                          content=body_str if body else None)
         data = resp.json()
         if data.get("code") not in ("0", 0, None):
-            raise OKXError(f"OKX API error {data.get('code')}: {data.get('msg')} ({path})")
+            detail = data.get("msg") or ""
+            # عند فشل أمر (trade/order)، السبب الفعلي غالبًا داخل data[0].sMsg وليس في msg العام.
+            order_errors = [
+                f"{item.get('sCode')}:{item.get('sMsg')}"
+                for item in (data.get("data") or [])
+                if isinstance(item, dict) and item.get("sCode") not in ("0", 0, None)
+            ]
+            if order_errors:
+                detail = f"{detail} | " + "; ".join(order_errors)
+            raise OKXError(f"OKX API error {data.get('code')}: {detail} ({path})")
         return data
 
     # ---- بيانات السوق (عامة، لا تحتاج توقيع) ----
@@ -111,14 +120,14 @@ class OKXClient:
         return data["data"][0]
 
     async def place_market_sell_base(self, inst_id: str, base_amount: str) -> dict:
-        """بيع كمية محددة من الأصل الأساسي."""
+        """بيع كمية محددة من الأصل الأساسي. لا حاجة لـ tgtCcy هنا؛ sz للبيع دائمًا
+        بعملة الأصل الأساسي، وإرسال tgtCcy مع sell كان يتسبب برفض الأمر من OKX."""
         body = {
             "instId": inst_id,
             "tdMode": "cash",
             "side": "sell",
             "ordType": "market",
             "sz": base_amount,
-            "tgtCcy": "base_ccy",
         }
         data = await self._request("POST", "/api/v5/trade/order", body=body)
         return data["data"][0]
