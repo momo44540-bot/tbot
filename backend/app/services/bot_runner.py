@@ -331,8 +331,18 @@ class BotRunner:
 
         if state.trading_mode == "live":
             try:
+                # الرصيد الفعلي قد يكون أقل بقليل من الكمية المسجّلة بسبب رسوم التداول
+                # التي تُخصم من العملة نفسها عند الشراء؛ نبيع الأقل بين المسجّل والمتاح فعليًا.
+                base_ccy = position.symbol.split("-")[0]
+                try:
+                    balance = await okx_client.get_balance(base_ccy)
+                    available_base = float(balance["details"][0]["availBal"]) if balance.get("details") else 0.0
+                except (OKXError, KeyError, IndexError):
+                    available_base = position.size
+
                 lot_size = self.lot_size.get(position.symbol)
-                sell_size = round_down_to_step(position.size, lot_size) if lot_size else position.size
+                raw_sell_size = min(position.size, available_base) if available_base > 0 else position.size
+                sell_size = round_down_to_step(raw_sell_size, lot_size) if lot_size else raw_sell_size
                 if sell_size <= 0:
                     await self._log(position.symbol, "error", "sell_size_below_lot_size",
                                      {"size": position.size, "lot_size": lot_size})
