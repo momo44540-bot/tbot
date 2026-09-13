@@ -63,6 +63,7 @@ export type StrategySettings = {
   symbols: string[]
   timeframe: string
   take_profit_pct: number
+  trailing_profit_pct: number
   stop_loss_pct: number
   position_size_pct: number
   max_concurrent_positions: number

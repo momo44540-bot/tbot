@@ -50,6 +50,8 @@ class StrategyParams:
 
 def evaluate_entry(data: SymbolMarketData, params: StrategyParams, *,
                     orderbook_required: bool = False) -> EntrySignal:
+    """السعر فوق VWAP (وبحد أقصى للمسافة) + تأكيد واحد على الأقل من:
+    حجم قوي (مع تمييز اختراق قمة الشمعة السابقة)، أو ضغط دفتر أوامر إيجابي."""
     if data.last_price is None or not data.candles:
         return EntrySignal(False, None, None, None, None, "insufficient_data")
 
@@ -72,9 +74,14 @@ def evaluate_entry(data: SymbolMarketData, params: StrategyParams, *,
     volume_positive = vol_ratio is not None and vol_ratio >= params.volume_ratio_threshold
     orderbook_positive = ob_ratio is not None and ob_ratio >= params.orderbook_ratio_threshold
 
-    # السعر فوق VWAP + (حجم جيد OR دفتر أوامر جيد).
+    breakout_positive = False
+    if len(data.candles) >= 2 and volume_positive:
+        breakout_positive = data.candles[-1].close > data.candles[-2].high
+
+    # السعر فوق VWAP + (حجم جيد، مع تمييز اختراق قمة الشمعة السابقة، OR دفتر أوامر جيد).
     if not orderbook_required and volume_positive:
-        return EntrySignal(True, True, vwap, ob_ratio, vol_ratio, "vwap_plus_volume")
+        reason = "vwap_plus_breakout_volume" if breakout_positive else "vwap_plus_volume"
+        return EntrySignal(True, True, vwap, ob_ratio, vol_ratio, reason)
 
     if orderbook_positive:
         return EntrySignal(True, True, vwap, ob_ratio, vol_ratio, "vwap_plus_orderbook")
@@ -96,11 +103,18 @@ class ExitSignal:
     pnl_pct: float
 
 
-def evaluate_exit(entry_price: float, current_price: float, take_profit_pct: float,
+def evaluate_exit(entry_price: float, current_price: float, peak_price: float,
+                   take_profit_pct: float, trailing_profit_pct: float,
                    stop_loss_pct: float) -> ExitSignal:
+    """هدفان: جني ربح مباشر عند take_profit_pct، أو تثبيت ربح عند trailing_profit_pct
+    إذا كان السعر قد تجاوزه سابقًا (peak_price) ثم ارتد إليه أو تحته."""
     pnl_pct = (current_price - entry_price) / entry_price * 100
+    peak_pnl_pct = (peak_price - entry_price) / entry_price * 100
+
     if pnl_pct >= take_profit_pct:
         return ExitSignal(True, "take_profit", pnl_pct)
+    if peak_pnl_pct > trailing_profit_pct and pnl_pct <= trailing_profit_pct:
+        return ExitSignal(True, "take_profit_trailing", pnl_pct)
     if pnl_pct <= -abs(stop_loss_pct):
         return ExitSignal(True, "stop_loss", pnl_pct)
     return ExitSignal(False, "hold", pnl_pct)

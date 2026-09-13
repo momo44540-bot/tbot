@@ -278,7 +278,7 @@ class BotRunner:
         async with SessionLocal() as session:
             position = Position(
                 symbol=symbol, entry_price=fill_price, size=base_size, quote_spent=quote_size,
-                take_profit_price=tp_price, stop_loss_price=sl_price,
+                take_profit_price=tp_price, stop_loss_price=sl_price, peak_price=fill_price,
                 mode=state.trading_mode, status="open", entry_order_id=order_id,
             )
             session.add(position)
@@ -312,12 +312,17 @@ class BotRunner:
                 select(Position).where(Position.status == "open", Position.symbol == symbol)
             )
             position = result.scalar_one_or_none()
-        if position is None:
-            return
+            if position is None:
+                return
+            if current_price > position.peak_price:
+                position.peak_price = current_price
+                session.add(position)
+                await session.commit()
+                await session.refresh(position)
 
         config = await get_or_create_config()
-        exit_signal = evaluate_exit(position.entry_price, current_price,
-                                     config.take_profit_pct, config.stop_loss_pct)
+        exit_signal = evaluate_exit(position.entry_price, current_price, position.peak_price,
+                                     config.take_profit_pct, config.trailing_profit_pct, config.stop_loss_pct)
         if exit_signal.should_exit:
             await self._close_position(position, current_price, exit_signal.reason, exit_signal.pnl_pct)
 

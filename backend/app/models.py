@@ -20,6 +20,7 @@ class Position(Base):
     quote_spent: Mapped[float] = mapped_column(Float)
     take_profit_price: Mapped[float] = mapped_column(Float)
     stop_loss_price: Mapped[float] = mapped_column(Float)
+    peak_price: Mapped[float] = mapped_column(Float, default=0.0)
     mode: Mapped[str] = mapped_column(String)  # paper | live
     status: Mapped[str] = mapped_column(String, default="open")  # open | closed
     entry_order_id: Mapped[str] = mapped_column(String, default="")
@@ -49,7 +50,8 @@ class StrategyConfig(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     symbols: Mapped[list] = mapped_column(JSON, default=list)
     timeframe: Mapped[str] = mapped_column(String, default="15m")
-    take_profit_pct: Mapped[float] = mapped_column(Float, default=10.0)
+    take_profit_pct: Mapped[float] = mapped_column(Float, default=5.0)
+    trailing_profit_pct: Mapped[float] = mapped_column(Float, default=3.0)
     stop_loss_pct: Mapped[float] = mapped_column(Float, default=1.0)
     position_size_pct: Mapped[float] = mapped_column(Float, default=20.0)
     max_concurrent_positions: Mapped[int] = mapped_column(Integer, default=5)

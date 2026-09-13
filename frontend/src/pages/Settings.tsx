@@ -57,8 +57,10 @@ export default function Settings() {
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <NumberField label="جني الربح %" value={form.take_profit_pct}
+          <NumberField label="جني الربح المباشر %" value={form.take_profit_pct}
             onChange={(v) => update('take_profit_pct', v)} />
+          <NumberField label="جني الربح المؤمَّن (تراجع) %" value={form.trailing_profit_pct}
+            onChange={(v) => update('trailing_profit_pct', v)} />
           <NumberField label="وقف الخسارة %" value={form.stop_loss_pct}
             onChange={(v) => update('stop_loss_pct', v)} />
           <NumberField label="حجم الصفقة % من رأس المال" value={form.position_size_pct}

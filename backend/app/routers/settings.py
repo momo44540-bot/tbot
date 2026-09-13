@@ -15,6 +15,7 @@ class StrategyConfigUpdate(BaseModel):
     symbols: list[str] | None = None
     timeframe: str | None = None
     take_profit_pct: float | None = None
+    trailing_profit_pct: float | None = None
     stop_loss_pct: float | None = None
     position_size_pct: float | None = None
     max_concurrent_positions: int | None = None
@@ -32,6 +33,7 @@ async def get_settings():
         "symbols": config.symbols,
         "timeframe": config.timeframe,
         "take_profit_pct": config.take_profit_pct,
+        "trailing_profit_pct": config.trailing_profit_pct,
         "stop_loss_pct": config.stop_loss_pct,
         "position_size_pct": config.position_size_pct,
         "max_concurrent_positions": config.max_concurrent_positions,
