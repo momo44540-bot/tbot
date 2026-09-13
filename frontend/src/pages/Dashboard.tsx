@@ -123,6 +123,7 @@ export default function Dashboard() {
                   <th>الربح/الخسارة</th>
                   <th>جني الربح</th>
                   <th>وقف الخسارة</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -136,6 +137,15 @@ export default function Dashboard() {
                     </td>
                     <td className="text-slate-400">{fmt(p.take_profit_price, 4)}</td>
                     <td className="text-slate-400">{fmt(p.stop_loss_price, 4)}</td>
+                    <td>
+                      <button disabled={busy}
+                        onClick={() => {
+                          if (confirm(`إغلاق صفقة ${p.symbol} الآن؟`)) withBusy(() => api.closePosition(p.id))
+                        }}
+                        className="rounded-lg bg-red-900 px-3 py-1 text-xs font-medium text-red-200 hover:bg-red-800 disabled:opacity-40">
+                        إغلاق الصفقة
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

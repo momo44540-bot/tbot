@@ -396,5 +396,15 @@ class BotRunner:
             pnl_pct = (price - position.entry_price) / position.entry_price * 100
             await self._close_position(position, price, reason, pnl_pct)
 
+    async def close_position_by_id(self, position_id: int, reason: str = "manual") -> None:
+        async with SessionLocal() as session:
+            position = await session.get(Position, position_id)
+        if position is None or position.status != "open":
+            return
+        data = self.store.get(position.symbol)
+        price = data.last_price or position.entry_price
+        pnl_pct = (price - position.entry_price) / position.entry_price * 100
+        await self._close_position(position, price, reason, pnl_pct)
+
 
 bot_runner = BotRunner()

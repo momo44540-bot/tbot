@@ -99,4 +99,5 @@ export const api = {
     method: 'POST', body: JSON.stringify({ mode }),
   }),
   closeAll: () => request<{ ok: boolean }>('/api/control/close-all', { method: 'POST' }),
+  closePosition: (id: number) => request<{ ok: boolean }>(`/api/control/close-position/${id}`, { method: 'POST' }),
 }

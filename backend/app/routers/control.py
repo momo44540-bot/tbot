@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import BotState
+from app.models import BotState, Position
 from app.security import require_auth
 from app.services.bot_runner import bot_runner, get_or_create_state
 
@@ -70,4 +70,14 @@ async def set_mode(payload: ModeRequest):
 @router.post("/close-all")
 async def close_all():
     await bot_runner.close_all_positions(reason="manual")
+    return {"ok": True}
+
+
+@router.post("/close-position/{position_id}")
+async def close_position(position_id: int):
+    async with SessionLocal() as session:
+        position = await session.get(Position, position_id)
+        if position is None or position.status != "open":
+            raise HTTPException(status_code=404, detail="position_not_found_or_closed")
+    await bot_runner.close_position_by_id(position_id, reason="manual")
     return {"ok": True}
