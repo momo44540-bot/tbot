@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type Dashboard as DashboardData } from '../lib/api'
+import { useCurrency } from '../lib/currency'
 import { useLiveFeed } from '../lib/ws'
 
 function fmt(n: number | null | undefined, digits = 2) {
@@ -8,6 +9,7 @@ function fmt(n: number | null | undefined, digits = 2) {
 }
 
 export default function Dashboard() {
+  const { formatMoney } = useCurrency()
   const [data, setData] = useState<DashboardData | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -56,7 +58,8 @@ export default function Dashboard() {
           tone={data.running ? 'good' : 'neutral'} />
         <StatCard label="الوضع" value={modeIsLive ? 'حقيقي (Live)' : 'محاكاة (Paper)'}
           tone={modeIsLive ? 'warn' : 'neutral'} />
-        <StatCard label="الرصيد المتاح" value={`$${fmt(data.available_balance)}`} tone="neutral" />
+        <StatCard label="الرصيد المتاح"
+          value={data.available_balance === null ? '—' : formatMoney(data.available_balance)} tone="neutral" />
         <StatCard label="ربح/خسارة اليوم" value={`${fmt(data.daily_realized_pnl_pct)}%`}
           tone={data.daily_realized_pnl_pct >= 0 ? 'good' : 'bad'} />
       </div>
@@ -141,15 +144,15 @@ export default function Dashboard() {
                   <tr key={p.id} className="border-b border-slate-800/50">
                     <td className="py-2 font-medium text-white">{p.symbol}</td>
                     <td className="text-slate-300">{fmt(p.size, 6)}</td>
-                    <td className="text-slate-300">${fmt(p.quote_spent)}</td>
-                    <td className="text-slate-300">${fmt(p.size * p.current_price)}</td>
-                    <td>{fmt(p.entry_price, 4)}</td>
-                    <td>{fmt(p.current_price, 4)}</td>
+                    <td className="text-slate-300">{formatMoney(p.quote_spent)}</td>
+                    <td className="text-slate-300">{formatMoney(p.size * p.current_price)}</td>
+                    <td>{formatMoney(p.entry_price, 4)}</td>
+                    <td>{formatMoney(p.current_price, 4)}</td>
                     <td className={p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                       {fmt(p.unrealized_pct)}%
                     </td>
-                    <td className="text-slate-400">{fmt(p.take_profit_price, 4)}</td>
-                    <td className="text-slate-400">{fmt(p.stop_loss_price, 4)}</td>
+                    <td className="text-slate-400">{formatMoney(p.take_profit_price, 4)}</td>
+                    <td className="text-slate-400">{formatMoney(p.stop_loss_price, 4)}</td>
                     <td>
                       <button disabled={busy}
                         onClick={() => {

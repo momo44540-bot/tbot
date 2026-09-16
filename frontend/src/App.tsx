@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import { api } from './lib/api'
+import { CurrencyProvider } from './lib/currency'
 import Dashboard from './pages/Dashboard'
 import History from './pages/History'
 import Login from './pages/Login'
@@ -24,15 +25,17 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar onLogout={() => setAuthed(false)} />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </div>
+    <CurrencyProvider>
+      <div className="min-h-screen">
+        <Navbar onLogout={() => setAuthed(false)} />
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/logs" element={<Logs />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </CurrencyProvider>
   )
 }
