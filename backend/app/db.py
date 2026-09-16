@@ -17,6 +17,7 @@ _COLUMN_MIGRATIONS = [
     ("positions", "peak_price", "ALTER TABLE positions ADD COLUMN peak_price FLOAT DEFAULT 0.0"),
     ("strategy_config", "trailing_profit_pct",
      "ALTER TABLE strategy_config ADD COLUMN trailing_profit_pct FLOAT DEFAULT 3.0"),
+    ("positions", "equity_at_entry", "ALTER TABLE positions ADD COLUMN equity_at_entry FLOAT DEFAULT 0.0"),
 ]
 
 

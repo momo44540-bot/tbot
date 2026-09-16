@@ -21,6 +21,7 @@ class Position(Base):
     take_profit_price: Mapped[float] = mapped_column(Float)
     stop_loss_price: Mapped[float] = mapped_column(Float)
     peak_price: Mapped[float] = mapped_column(Float, default=0.0)
+    equity_at_entry: Mapped[float] = mapped_column(Float, default=0.0)
     mode: Mapped[str] = mapped_column(String)  # paper | live
     status: Mapped[str] = mapped_column(String, default="open")  # open | closed
     entry_order_id: Mapped[str] = mapped_column(String, default="")

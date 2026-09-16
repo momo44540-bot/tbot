@@ -67,8 +67,15 @@ export default function Dashboard() {
         </div>
       )}
       {data.daily_loss_limit_hit && (
-        <div className="rounded-lg bg-amber-950 px-4 py-2 text-sm text-amber-300">
-          تم بلوغ حد الخسارة اليومي — تم إيقاف الدخول في صفقات جديدة حتى اليوم التالي.
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-950 px-4 py-2 text-sm text-amber-300">
+          <span>تم بلوغ حد الخسارة اليومي — تم إيقاف الدخول في صفقات جديدة حتى اليوم التالي.</span>
+          <button disabled={busy}
+            onClick={() => {
+              if (confirm('إعادة ضبط حد الخسارة اليومي والسماح بصفقات جديدة الآن؟')) withBusy(api.resetDailyLoss)
+            }}
+            className="rounded-lg bg-amber-700 px-3 py-1 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-40">
+            إعادة الضبط الآن
+          </button>
         </div>
       )}
 
@@ -118,6 +125,9 @@ export default function Dashboard() {
               <thead>
                 <tr className="border-b border-slate-800 text-right text-slate-400">
                   <th className="py-2">الزوج</th>
+                  <th>الكمية</th>
+                  <th>المبلغ المستثمر</th>
+                  <th>القيمة الحالية</th>
                   <th>سعر الدخول</th>
                   <th>السعر الحالي</th>
                   <th>الربح/الخسارة</th>
@@ -130,6 +140,9 @@ export default function Dashboard() {
                 {data.open_positions.map((p) => (
                   <tr key={p.id} className="border-b border-slate-800/50">
                     <td className="py-2 font-medium text-white">{p.symbol}</td>
+                    <td className="text-slate-300">{fmt(p.size, 6)}</td>
+                    <td className="text-slate-300">${fmt(p.quote_spent)}</td>
+                    <td className="text-slate-300">${fmt(p.size * p.current_price)}</td>
                     <td>{fmt(p.entry_price, 4)}</td>
                     <td>{fmt(p.current_price, 4)}</td>
                     <td className={p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}>

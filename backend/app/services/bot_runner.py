@@ -15,6 +15,13 @@ from app.utils import round_down_to_step
 
 logger = logging.getLogger("bot_runner")
 
+# عملات مستقرة (Stablecoins) لا نتداولها: حركتها شبه معدومة مقابل USDT، فتبقى
+# تشغل مقعد صفقة (من أصل عدد الصفقات المتزامنة المحدود) دون أن تحقق ربحًا أو خسارة فعليًا.
+STABLECOIN_BASE_CURRENCIES = {
+    "USDC", "DAI", "TUSD", "USDP", "FDUSD", "PYUSD", "BUSD", "USDD", "GUSD",
+    "USDK", "EURC", "EUROC", "USDE", "SUSDE", "USTC", "FRAX", "LUSD", "USD1",
+}
+
 
 async def get_or_create_config() -> StrategyConfig:
     async with SessionLocal() as session:
@@ -68,6 +75,9 @@ class BotRunner:
         symbols: list[str] = []
         for item in instruments:
             symbol = item["instId"]
+            base_ccy = symbol.split("-")[0]
+            if base_ccy in STABLECOIN_BASE_CURRENCIES:
+                continue
             symbols.append(symbol)
             try:
                 self.lot_size[symbol] = float(item.get("lotSz") or 0)
@@ -279,7 +289,7 @@ class BotRunner:
             position = Position(
                 symbol=symbol, entry_price=fill_price, size=base_size, quote_spent=quote_size,
                 take_profit_price=tp_price, stop_loss_price=sl_price, peak_price=fill_price,
-                mode=state.trading_mode, status="open", entry_order_id=order_id,
+                equity_at_entry=equity, mode=state.trading_mode, status="open", entry_order_id=order_id,
             )
             session.add(position)
             if state.trading_mode == "paper":
@@ -362,8 +372,12 @@ class BotRunner:
         pnl_quote = (exit_price - position.entry_price) * position.size
         realized_pct = (exit_price - position.entry_price) / position.entry_price * 100
         config = await get_or_create_config()
-        # تحويل عائد الصفقة إلى مساهمة تقريبية على مستوى المحفظة، لأغراض حد الخسارة اليومي.
-        portfolio_pnl_pct = realized_pct * config.position_size_pct / 100
+        # مساهمة الصفقة الفعلية في رأس المال، بالنسبة لرأس المال وقت فتحها (وليس إعدادات
+        # حجم الصفقة الحالية، التي قد تكون تغيّرت بعد فتح الصفقة وتُعطي رقمًا خاطئًا).
+        if position.equity_at_entry and position.equity_at_entry > 0:
+            portfolio_pnl_pct = pnl_quote / position.equity_at_entry * 100
+        else:
+            portfolio_pnl_pct = realized_pct * config.position_size_pct / 100
 
         async with SessionLocal() as session:
             db_position = await session.get(Position, position.id)

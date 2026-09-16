@@ -81,3 +81,15 @@ async def close_position(position_id: int):
             raise HTTPException(status_code=404, detail="position_not_found_or_closed")
     await bot_runner.close_position_by_id(position_id, reason="manual")
     return {"ok": True}
+
+
+@router.post("/reset-daily-loss")
+async def reset_daily_loss():
+    async with SessionLocal() as session:
+        result = await session.execute(select(BotState).where(BotState.id == 1))
+        state = result.scalar_one_or_none() or BotState(id=1)
+        state.daily_realized_pnl_pct = 0.0
+        state.daily_loss_limit_hit = False
+        session.add(state)
+        await session.commit()
+    return {"ok": True}

@@ -113,4 +113,5 @@ export const api = {
   }),
   closeAll: () => request<{ ok: boolean }>('/api/control/close-all', { method: 'POST' }),
   closePosition: (id: number) => request<{ ok: boolean }>(`/api/control/close-position/${id}`, { method: 'POST' }),
+  resetDailyLoss: () => request<{ ok: boolean }>('/api/control/reset-daily-loss', { method: 'POST' }),
 }
