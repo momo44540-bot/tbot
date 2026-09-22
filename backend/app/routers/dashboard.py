@@ -30,20 +30,29 @@ async def get_dashboard():
             "unrealized_pct": unrealized_pct, "entry_time": p.entry_time, "mode": p.mode,
         })
 
+    positions_value = sum(p["size"] * p["current_price"] for p in open_positions)
+
     if state.trading_mode == "live":
         try:
             balance = await okx_client.get_balance("USDT")
             available_balance = float(balance["details"][0]["availBal"]) if balance.get("details") else 0.0
-        except (OKXError, KeyError, IndexError):
+            # totalEq تمثّل قيمة الحساب الكلية بالدولار (نقد + كل العملات المحتفظ بها)
+            # وتبقى صحيحة رغم فلترة ccy=USDT، لذا هي مصدر أدق من جمع النقد مع قيمة
+            # الصفقات المفتوحة فقط (التي لا تشمل أرصدة خارج مراكز البوت المفتوحة حاليًا).
+            total_equity = float(balance["totalEq"]) if balance.get("totalEq") else available_balance + positions_value
+        except (OKXError, KeyError, IndexError, ValueError):
             available_balance = None
+            total_equity = None
     else:
         available_balance = state.paper_balance
+        total_equity = state.paper_balance + positions_value
 
     return {
         "running": state.running,
         "kill_switch": state.kill_switch,
         "trading_mode": state.trading_mode,
         "available_balance": available_balance,
+        "total_equity": total_equity,
         "daily_realized_pnl_pct": state.daily_realized_pnl_pct,
         "daily_loss_limit_hit": state.daily_loss_limit_hit,
         "open_positions": open_positions,

@@ -30,6 +30,7 @@ export type Dashboard = {
   kill_switch: boolean
   trading_mode: 'paper' | 'live'
   available_balance: number | null
+  total_equity: number | null
   daily_realized_pnl_pct: number
   daily_loss_limit_hit: boolean
   open_positions: Position[]

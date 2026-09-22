@@ -248,10 +248,14 @@ class BotRunner:
             try:
                 balance = await okx_client.get_balance("USDT")
                 available = float(balance["details"][0]["availBal"]) if balance.get("details") else 0.0
-            except (OKXError, KeyError, IndexError) as exc:
+                # الرصيد المتاح بعملة USDT وحده ليس رأس المال؛ رأس المال الفعلي هو قيمة
+                # الحساب الكلية (نقد + مراكز مفتوحة بعملات أخرى) حتى تُحسب نسبة حجم
+                # الصفقة من رأس المال الكامل، لا من النقد المتبقي فقط (وإلا يتقلّص
+                # المبلغ المُستثمر في كل صفقة جديدة ويبقى رصيد USDT غير مستغَل).
+                equity = float(balance.get("totalEq") or available)
+            except (OKXError, KeyError, IndexError, ValueError) as exc:
                 await self._log(symbol, "error", f"balance_fetch_failed:{exc}", {})
                 return
-            equity = available
         else:
             available = state.paper_balance
             equity = state.paper_balance

@@ -53,12 +53,14 @@ export default function Dashboard() {
     <div className="mx-auto max-w-5xl space-y-4 p-4">
       {error && <div className="rounded-lg bg-red-950 px-4 py-2 text-sm text-red-300">{error}</div>}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="حالة البوت" value={data.running ? 'يعمل' : 'متوقف'}
           tone={data.running ? 'good' : 'neutral'} />
         <StatCard label="الوضع" value={modeIsLive ? 'حقيقي (Live)' : 'محاكاة (Paper)'}
           tone={modeIsLive ? 'warn' : 'neutral'} />
-        <StatCard label="الرصيد المتاح"
+        <StatCard label="إجمالي المحفظة"
+          value={data.total_equity === null ? '—' : formatMoney(data.total_equity)} tone="neutral" />
+        <StatCard label="الرصيد المتاح (نقد)"
           value={data.available_balance === null ? '—' : formatMoney(data.available_balance)} tone="neutral" />
         <StatCard label="ربح/خسارة اليوم" value={`${fmt(data.daily_realized_pnl_pct)}%`}
           tone={data.daily_realized_pnl_pct >= 0 ? 'good' : 'bad'} />
