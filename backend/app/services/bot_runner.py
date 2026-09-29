@@ -358,23 +358,36 @@ class BotRunner:
                     balance = await okx_client.get_balance(base_ccy)
                     available_base = float(balance["details"][0]["availBal"]) if balance.get("details") else 0.0
                 except (OKXError, KeyError, IndexError):
-                    available_base = position.size
+                    available_base = None
 
-                lot_size = self.lot_size.get(position.symbol)
-                raw_sell_size = min(position.size, available_base) if available_base > 0 else position.size
-                sell_size = round_down_to_step(raw_sell_size, lot_size) if lot_size else raw_sell_size
-                if sell_size <= 0:
-                    await self._log(position.symbol, "error", "sell_size_below_lot_size",
-                                     {"size": position.size, "lot_size": lot_size})
-                    return
-                order = await okx_client.place_market_sell_base(position.symbol, f"{sell_size:.8f}")
-                order_id = order.get("ordId", "")
-                filled = await self._poll_fill(position.symbol, order_id)
-                if filled is None:
-                    await self._log(position.symbol, "error", "exit_fill_confirmation_timeout",
-                                     {"order_id": order_id})
-                    return
-                exit_price = filled[0]
+                lot_size = self.lot_size.get(position.symbol) or 0.0
+                min_size = self.min_size.get(position.symbol) or 0.0
+                sellable_floor = max(lot_size, min_size, 1e-12)
+
+                if available_base is not None and available_base < sellable_floor:
+                    # لا يوجد رصيد فعلي قابل للبيع — الأرجح أن الصفقة أُغلقت خارجيًا
+                    # (بيع يدوي من تطبيق OKX). نُطابق سجلاتنا مع الواقع ونغلق السجل
+                    # بدل إعادة محاولة البيع إلى ما لا نهاية على كل تحديث سعر.
+                    await self._log(position.symbol, "info", "position_reconciled_no_balance", {
+                        "available_base": available_base, "recorded_size": position.size,
+                        "note": "no real balance to sell; closing record to match reality",
+                    })
+                else:
+                    raw_sell_size = min(position.size, available_base) if available_base is not None else position.size
+                    sell_size = round_down_to_step(raw_sell_size, lot_size) if lot_size else raw_sell_size
+                    if sell_size <= 0:
+                        await self._log(position.symbol, "info", "position_reconciled_no_balance", {
+                            "available_base": available_base, "recorded_size": position.size,
+                        })
+                    else:
+                        order = await okx_client.place_market_sell_base(position.symbol, f"{sell_size:.8f}")
+                        order_id = order.get("ordId", "")
+                        filled = await self._poll_fill(position.symbol, order_id)
+                        if filled is None:
+                            await self._log(position.symbol, "error", "exit_fill_confirmation_timeout",
+                                             {"order_id": order_id})
+                            return
+                        exit_price = filled[0]
             except OKXError as exc:
                 await self._log(position.symbol, "error", f"exit_order_failed:{exc}", {})
                 return
