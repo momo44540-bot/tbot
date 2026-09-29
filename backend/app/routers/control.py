@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/control", tags=["control"], dependencies=[Depend
 async def status():
     state = await get_or_create_state()
     return {
-        "running": state.running,
+        "running": bot_runner.is_running,
         "kill_switch": state.kill_switch,
         "trading_mode": state.trading_mode,
     }

@@ -58,6 +58,12 @@ class BotRunner:
         self.symbols: list[str] = []
         self.blocked_symbols: set[str] = set()
 
+    @property
+    def is_running(self) -> bool:
+        """الحالة الفعلية الحية لهذه العملية، على عكس BotState.running المخزّنة في
+        قاعدة البيانات والتي قد تبقى "True" زورًا بعد تعطّل/إعادة تشغيل العملية."""
+        return self._running
+
     async def _log(self, symbol: str, decision: str, reason: str, details: dict | None = None) -> None:
         async with SessionLocal() as session:
             session.add(DecisionLog(symbol=symbol, decision=decision, reason=reason, details=details or {}))

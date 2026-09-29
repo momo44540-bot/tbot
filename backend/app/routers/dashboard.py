@@ -48,7 +48,7 @@ async def get_dashboard():
         total_equity = state.paper_balance + positions_value
 
     return {
-        "running": state.running,
+        "running": bot_runner.is_running,
         "kill_switch": state.kill_switch,
         "trading_mode": state.trading_mode,
         "available_balance": available_balance,
